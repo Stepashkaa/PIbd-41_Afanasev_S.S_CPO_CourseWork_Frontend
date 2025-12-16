@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import StoreContext from "../../../stores/StoreContext";
 
 import { getTourDepartureById, updateTourDeparture } from "../../../services/tourDepartureService.js";
-import { getFlightsForTour } from "../../../services/flightService.js";
+import { getFlightsForDeparture } from "../../../services/flightService.js";
 import { getToursPaged, getMyToursPaged } from "../../../services/tourService.js";
 
 const STATUSES = ["PLANNED", "SALES_CLOSED", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
@@ -53,14 +53,10 @@ export default function EditTourDeparture() {
   };
 
   const loadFlights = async (page = 0, overrideSearch) => {
-    if (!formData.tourId) {
-      setFlightPage({ content: [], page: 0, totalPages: 0, totalElements: 0, size: 0 });
-      return;
-    }
 
     const s = overrideSearch ?? flightSearch;
-    const data = await getFlightsForTour({
-      tourId: Number(formData.tourId),
+    const data = await getFlightsForDeparture({
+      departureId: Number(id),
       flightNumber: s,
       page,
       size: 10,
@@ -102,15 +98,16 @@ export default function EditTourDeparture() {
   }, [id]);
 
   useEffect(() => {
-    // при смене тура — сбросить выбор рейсов (иначе будет конфликт валидации на бэке)
-    (async () => {
-      if (!formData.tourId) return;
+  (async () => {
+    try {
+      setError(null);
       setFlightSearch("");
-      setSelectedFlightIds(new Set());
       await loadFlights(0, "");
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.tourId]);
+    } catch (e) {
+      setError(e?.response?.data?.message || "Ошибка загрузки привязанных рейсов");
+    }
+  })();
+}, [id])
 
   const toggleFlight = (fid) => {
     setSelectedFlightIds((prev) => {
@@ -122,15 +119,6 @@ export default function EditTourDeparture() {
   };
 
   const selectedCount = useMemo(() => selectedFlightIds.size, [selectedFlightIds]);
-
-  const onSubmitFlightsSearch = async (e) => {
-    e.preventDefault();
-    try {
-      await loadFlights(0);
-    } catch (e2) {
-      setError(e2?.response?.data?.message || "Ошибка поиска рейсов");
-    }
-  };
 
   const handleChange = (e) => setFormData((p) => ({ ...p, [e.target.name]: e.target.value }));
 
@@ -256,7 +244,7 @@ export default function EditTourDeparture() {
               </h5>
             </div>
 
-            <Form className="mb-3" onSubmit={onSubmitFlightsSearch}>
+            <div className="mb-3">
               <div className="d-flex gap-2 flex-wrap align-items-center">
                 <Form.Control
                   placeholder="Поиск по номеру рейса (SU100)"
@@ -264,10 +252,27 @@ export default function EditTourDeparture() {
                   onChange={(e) => setFlightSearch(e.target.value)}
                   style={{ maxWidth: 360 }}
                   disabled={!formData.tourId}
+                  onKeyDown={async (e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();           // чтобы не сабмитилась главная форма
+                      try { await loadFlights(0); } catch {"Ошибка"}
+                    }
+                  }}
                 />
-                <Button type="submit" variant="secondary" disabled={!formData.tourId}>
+
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={!formData.tourId}
+                  onClick={async () => {
+                    try { await loadFlights(0); } catch (e2) {
+                      setError(e2?.response?.data?.message || "Ошибка поиска рейсов");
+                    }
+                  }}
+                >
                   Найти
                 </Button>
+
                 <Button
                   type="button"
                   variant="outline-secondary"
@@ -280,7 +285,8 @@ export default function EditTourDeparture() {
                   Сброс
                 </Button>
               </div>
-            </Form>
+            </div>
+
 
             {!formData.tourId ? (
               <Alert variant="light">Сначала выберите тур — затем будут доступны рейсы для привязки</Alert>

@@ -71,3 +71,8 @@ export async function getMyToursPaged({ title, baseCityId, status, active, page,
   const res = await api.get(`/api/v1/tours/my/paged?${query}`);
   return res.data;
 }
+
+export async function getTourPublicById(id) {
+  const res = await api.get(`/api/v1/tours/${id}`);
+  return res.data;
+}

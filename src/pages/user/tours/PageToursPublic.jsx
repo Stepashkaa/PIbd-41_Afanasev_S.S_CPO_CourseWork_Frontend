@@ -30,6 +30,7 @@ export default function PageToursPublic() {
     totalElements: 0,
   });
 
+
   // уникальные страны из списка городов
   const countries = useMemo(() => {
     const set = new Set();
@@ -103,7 +104,7 @@ export default function PageToursPublic() {
   };
 
   const onBook = (tourId) => {
-    alert(`Бронирование тура #${tourId} будет доступно после реализации вылетов`);
+    navigate(`/tours/${tourId}/book`);
   };
 
   const prevDisabled = pageData.page <= 0;

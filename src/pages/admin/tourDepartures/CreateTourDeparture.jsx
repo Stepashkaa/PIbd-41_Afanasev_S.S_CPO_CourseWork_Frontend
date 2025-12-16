@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import StoreContext from "../../../stores/StoreContext";
 
 import { createTourDeparture } from "../../../services/tourDepartureService.js";
-import { getFlightsForTour } from "../../../services/flightService.js";
+import { getFlightsForTourDeparture } from "../../../services/flightService.js";
 import { getToursPaged, getMyToursPaged } from "../../../services/tourService.js";
 
 export default function CreateTourDeparture() {
@@ -27,7 +27,6 @@ export default function CreateTourDeparture() {
     priceOverride: "",
   });
 
-  // ✅ подбор рейсов
   const [flightSearch, setFlightSearch] = useState("");
   const [flightPage, setFlightPage] = useState({
     content: [],
@@ -39,6 +38,8 @@ export default function CreateTourDeparture() {
 
   const [selectedFlightIds, setSelectedFlightIds] = useState(() => new Set());
 
+  const canLoadFlights = !!formData.tourId && !!formData.startDate && !!formData.endDate;
+
   const loadTours = async () => {
     const data =
       role === "MANAGER"
@@ -49,15 +50,17 @@ export default function CreateTourDeparture() {
   };
 
   const loadFlights = async (page = 0, overrideSearch) => {
-    if (!formData.tourId) {
+    if (!canLoadFlights) {
       setFlightPage({ content: [], page: 0, totalPages: 0, totalElements: 0, size: 0 });
       return;
     }
 
     const s = overrideSearch ?? flightSearch;
 
-    const data = await getFlightsForTour({
+    const data = await getFlightsForTourDeparture({
       tourId: Number(formData.tourId),
+      startDate: formData.startDate,
+      endDate: formData.endDate,
       flightNumber: s,
       page,
       size: 10,
@@ -70,6 +73,7 @@ export default function CreateTourDeparture() {
     (async () => {
       try {
         setLoading(true);
+        setError(null);
         await loadTours();
       } catch (e) {
         setError(e?.response?.data?.message || "Ошибка загрузки туров");
@@ -80,36 +84,30 @@ export default function CreateTourDeparture() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ✅ единый эффект: при смене тура или дат — перезагрузка кандидатов
   useEffect(() => {
-    // при выборе тура — перезагрузить рейсы и сбросить выбранные
     (async () => {
-      setSelectedFlightIds(new Set());
-      setFlightSearch("");
-      await loadFlights(0, "");
+      try {
+        setError(null);
+        setSelectedFlightIds(new Set());
+        setFlightSearch("");
+        await loadFlights(0, "");
+      } catch (e) {
+        setError(e?.response?.data?.message || "Ошибка загрузки рейсов для тура");
+      }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.tourId]);
+  }, [formData.tourId, formData.startDate, formData.endDate]);
 
   const toggleFlight = (id) => {
     setSelectedFlightIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
   };
 
   const selectedCount = useMemo(() => selectedFlightIds.size, [selectedFlightIds]);
-
-  const onSubmitFlightsSearch = async (e) => {
-    e.preventDefault();
-    try {
-      await loadFlights(0);
-    } catch (e2) {
-      setError(e2?.response?.data?.message || "Ошибка поиска рейсов");
-    }
-  };
-
   const handleChange = (e) => setFormData((p) => ({ ...p, [e.target.name]: e.target.value }));
 
   const handleSubmit = async (e) => {
@@ -142,24 +140,16 @@ export default function CreateTourDeparture() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="py-5 text-center">
-        <Spinner />
-      </div>
-    );
-  }
+  if (loading) return <div className="py-5 text-center"><Spinner /></div>;
 
   const prevDisabled = flightPage.page <= 0;
-  const nextDisabled = flightPage.page >= flightPage.totalPages - 1;
+  const nextDisabled = flightPage.page >= (flightPage.totalPages || 1) - 1;
 
   return (
     <Container className="mt-3" style={{ maxWidth: 1100 }}>
       <div className="d-flex align-items-center justify-content-between">
         <h3 className="mb-0">Создать вылет тура</h3>
-        <Button as={Link} to="/tour-departures" variant="outline-secondary">
-          ← Назад
-        </Button>
+        <Button as={Link} to="/tour-departures" variant="outline-secondary">← Назад</Button>
       </div>
 
       {error && <Alert className="mt-3" variant="danger">{String(error)}</Alert>}
@@ -184,13 +174,11 @@ export default function CreateTourDeparture() {
               <Form.Group style={{ minWidth: 200 }}>
                 <Form.Label>Старт</Form.Label>
                 <Form.Control required type="date" name="startDate" value={formData.startDate} onChange={handleChange} />
-                <Form.Control.Feedback type="invalid">Обязательно</Form.Control.Feedback>
               </Form.Group>
 
               <Form.Group style={{ minWidth: 200 }}>
                 <Form.Label>Финиш</Form.Label>
                 <Form.Control required type="date" name="endDate" value={formData.endDate} onChange={handleChange} />
-                <Form.Control.Feedback type="invalid">Обязательно</Form.Control.Feedback>
               </Form.Group>
             </div>
 
@@ -198,7 +186,6 @@ export default function CreateTourDeparture() {
               <Form.Group style={{ minWidth: 220 }}>
                 <Form.Label>Вместимость</Form.Label>
                 <Form.Control required type="number" min="1" name="capacityTotal" value={formData.capacityTotal} onChange={handleChange} />
-                <Form.Control.Feedback type="invalid">Обязательно</Form.Control.Feedback>
               </Form.Group>
 
               <Form.Group style={{ minWidth: 220 }}>
@@ -214,7 +201,6 @@ export default function CreateTourDeparture() {
           </Card.Body>
         </Card>
 
-        {/* ✅ Привязка рейсов */}
         <Card className="mb-3">
           <Card.Body>
             <div className="d-flex align-items-center justify-content-between mb-2">
@@ -223,36 +209,40 @@ export default function CreateTourDeparture() {
               </h5>
             </div>
 
-            <Form className="mb-3" onSubmit={onSubmitFlightsSearch}>
-              <div className="d-flex gap-2 flex-wrap align-items-center">
-                <Form.Control
-                  placeholder="Поиск по номеру рейса (SU100)"
-                  value={flightSearch}
-                  onChange={(e) => setFlightSearch(e.target.value)}
-                  style={{ maxWidth: 360 }}
-                  disabled={!formData.tourId}
-                />
-                <Button type="submit" variant="secondary" disabled={!formData.tourId}>
-                  Найти
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline-secondary"
-                  disabled={!formData.tourId}
-                  onClick={async () => {
-                    setFlightSearch("");
-                    await loadFlights(0, "");
-                  }}
-                >
-                  Сброс
-                </Button>
-              </div>
-            </Form>
-
-            {!formData.tourId ? (
-              <Alert variant="light">Сначала выберите тур — затем будут доступны рейсы для привязки</Alert>
+            {!canLoadFlights ? (
+              <Alert variant="light">
+                Выберите тур и заполните даты (старт/финиш) — тогда появятся подходящие рейсы
+              </Alert>
             ) : (
               <>
+                <div className="mb-3">
+                  <div className="d-flex gap-2 flex-wrap align-items-center">
+                    <Form.Control
+                      placeholder="Поиск по номеру рейса (SU100)"
+                      value={flightSearch}
+                      onChange={(e) => setFlightSearch(e.target.value)}
+                      style={{ maxWidth: 360 }}
+                      onKeyDown={async (e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          await loadFlights(0);
+                        }
+                      }}
+                    />
+                    <Button type="button" variant="secondary" onClick={() => loadFlights(0)}>Найти</Button>
+                    <Button
+                      type="button"
+                      variant="outline-secondary"
+                      onClick={async () => {
+                        setFlightSearch("");
+                        await loadFlights(0, "");
+                      }}
+                    >
+                      Сброс
+                    </Button>
+                  </div>
+                </div>
+
                 <Table bordered hover responsive>
                   <thead>
                     <tr>
@@ -283,9 +273,7 @@ export default function CreateTourDeparture() {
                         </tr>
                       ))
                     ) : (
-                      <tr>
-                        <td colSpan={6} className="text-center">Рейсы не найдены</td>
-                      </tr>
+                      <tr><td colSpan={6} className="text-center">Рейсы не найдены</td></tr>
                     )}
                   </tbody>
                 </Table>

@@ -38,6 +38,16 @@ export async function getFlightsForTour({ tourId, flightNumber, page, size }) {
   return res.data;
 }
 
+export async function getFlightsForTourDeparture({ tourId, startDate, endDate, flightNumber, page, size }) {
+  const query = qs.stringify(
+    { startDate, endDate, flightNumber: flightNumber || undefined, page, size },
+    { skipNulls: true }
+  );
+  const res = await api.get(`/api/v1/flights/for-tour-departure/${tourId}?${query}`);
+  return res.data;
+}
+
+
 export async function getFlightsForDeparture({ departureId, flightNumber, page, size }) {
   const query = qs.stringify(
     { flightNumber: flightNumber || undefined, page, size },
@@ -55,4 +65,14 @@ export async function addDepartureToFlight(flightId, departureId) {
 export async function removeDepartureFromFlight(flightId, departureId) {
   const res = await api.delete(`/api/v1/flights/${flightId}/departures/${departureId}`);
   return res.data;
+}
+
+export async function bindDepartureToFlight(flightId, departureId) {
+  const res = await api.post(`/api/v1/flights/${flightId}/departures/${departureId}`);
+  return res.data; // FlightResponseDto
+}
+
+export async function unbindDepartureFromFlight(flightId, departureId) {
+  const res = await api.delete(`/api/v1/flights/${flightId}/departures/${departureId}`);
+  return res.data; // FlightResponseDto
 }

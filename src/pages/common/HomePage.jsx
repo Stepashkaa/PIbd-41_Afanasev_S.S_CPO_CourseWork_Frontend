@@ -55,6 +55,28 @@ export default function HomePage() {
                     </Card.Body>
                   </Card>
                 </Col>
+
+                <Col md={4}>
+                  <Card className="h-100">
+                    <Card.Body>
+                      <Card.Title>Рейсы</Card.Title>
+                      <Card.Text>Управление рейсами (CRUD)</Card.Text>
+                      <Button as={Link} to="/admin/flights">
+                        Открыть
+                      </Button>
+                    </Card.Body>
+                  </Card>
+                </Col>
+
+                <Col md={4}>
+                  <Card className="h-100">
+                    <Card.Body>
+                      <Card.Title>Бронирования</Card.Title>
+                      <Card.Text>Просмотр и смена статусов</Card.Text>
+                      <Button as={Link} to="/admin/bookings">Открыть</Button>
+                    </Card.Body>
+                  </Card>
+                </Col>
               </>
             )}
 

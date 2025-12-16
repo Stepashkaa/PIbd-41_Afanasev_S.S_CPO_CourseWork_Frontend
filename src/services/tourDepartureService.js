@@ -17,6 +17,25 @@ export async function getTourDeparturesPaged({ tourId, status, startFrom, startT
   return res.data;
 }
 
+// ✅ ДЛЯ МЕНЕДЖЕРА: только свои вылеты
+export async function getMyTourDeparturesPaged({ tourId, status, startFrom, startTo, page, size }) {
+  const query = qs.stringify(
+    {
+      tourId: tourId || undefined,
+      status: status || undefined,
+      startFrom: startFrom || undefined,
+      startTo: startTo || undefined,
+      page,
+      size,
+    },
+    { skipNulls: true }
+  );
+
+  // важное: на бэке /my/paged берёт email из SecurityContext
+  const res = await api.get(`/api/v1/tour-departures/my/paged?${query}`);
+  return res.data;
+}
+
 export async function getTourDeparturesByTour({ tourId, page, size }) {
   const query = qs.stringify({ tourId, page, size }, { skipNulls: true });
   const res = await api.get(`/api/v1/tour-departures/search/by-tour?${query}`);

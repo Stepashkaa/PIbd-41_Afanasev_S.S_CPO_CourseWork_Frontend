@@ -166,8 +166,8 @@ export default function PageMyTours() {
                       <Button
                         size="sm"
                         variant="outline-secondary"
-                        disabled
-                        title="Появится после реализации TourDeparture"
+                        as={Link}
+                        to={`/tour-departures?tourId=${t.id}`}
                       >
                         Вылеты
                       </Button>

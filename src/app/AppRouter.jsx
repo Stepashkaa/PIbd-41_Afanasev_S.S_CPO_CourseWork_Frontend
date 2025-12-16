@@ -38,6 +38,13 @@ import EditTourDeparture from "../pages/admin/tourDepartures/EditTourDeparture.j
 
 import PageTourDepartureFlightBind from "../pages/common/bindings/PageTourDepartureFlightBind.jsx";
 
+import PageTourBooking from "../pages/user/bookings/PageTourBooking.jsx";
+
+import PageMyBookings from "../pages/user/bookings/PageMyBookings.jsx";
+
+import PageBookingsAdmin from "../pages/admin/bookings/PageBookingsAdmin.jsx";
+import EditBookingStatusAdmin from "../pages/admin/bookings/EditBookingStatusAdmin.jsx";
+
 
 export default function AppRouter() {
   return (
@@ -203,6 +210,17 @@ export default function AppRouter() {
         }
       />
 
+      <Route
+        path="/tours/:id/book"
+        element={
+          <ProtectedRoute>
+            <RoleGate allow={["USER"]}>
+              <PageTourBooking />
+            </RoleGate>
+          </ProtectedRoute>
+        }
+      />
+
 
       {/* ADMIN: Flights */}
       <Route
@@ -275,6 +293,40 @@ export default function AppRouter() {
           <ProtectedRoute>
             <RoleGate allow={["ADMIN", "MANAGER"]}>
               <PageTourDepartureFlightBind />
+            </RoleGate>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/bookings"
+        element={
+          <ProtectedRoute>
+            <RoleGate allow={["USER"]}>
+              <PageMyBookings />
+            </RoleGate>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ADMIN: Bookings */}
+      <Route
+        path="/admin/bookings"
+        element={
+          <ProtectedRoute>
+            <RoleGate allow={["ADMIN"]}>
+              <PageBookingsAdmin />
+            </RoleGate>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/bookings/edit/:id"
+        element={
+          <ProtectedRoute>
+            <RoleGate allow={["ADMIN"]}>
+              <EditBookingStatusAdmin />
             </RoleGate>
           </ProtectedRoute>
         }
