@@ -41,9 +41,10 @@ export default function RegisterPage() {
       {error && <Alert variant="danger">{String(error)}</Alert>}
 
       <Form noValidate validated={validated} onSubmit={handleSubmit}>
-        <Form.Group className="mb-3">
+        <Form.Group className="mb-3" controlId="regUsername">
           <Form.Label>Имя пользователя</Form.Label>
           <Form.Control
+            id="regUsername"
             required
             name="username"
             minLength={5}
@@ -56,9 +57,10 @@ export default function RegisterPage() {
           </Form.Control.Feedback>
         </Form.Group>
 
-        <Form.Group className="mb-3">
+        <Form.Group className="mb-3" controlId="regEmail">
           <Form.Label>Email</Form.Label>
           <Form.Control
+            id="regEmail"
             required
             type="email"
             name="email"
@@ -70,9 +72,10 @@ export default function RegisterPage() {
           </Form.Control.Feedback>
         </Form.Group>
 
-        <Form.Group className="mb-3">
+        <Form.Group className="mb-3" controlId="regPassword">
           <Form.Label>Пароль</Form.Label>
           <Form.Control
+            id="regPassword"
             required
             type="password"
             name="password"

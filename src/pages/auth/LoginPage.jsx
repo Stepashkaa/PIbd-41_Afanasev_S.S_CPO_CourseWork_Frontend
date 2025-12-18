@@ -41,7 +41,7 @@ export default function LoginPage() {
       {error && <Alert variant="danger">{String(error)}</Alert>}
 
       <Form noValidate validated={validated} onSubmit={handleSubmit}>
-        <Form.Group className="mb-3">
+        <Form.Group className="mb-3" controlId="loginEmail">
           <Form.Label>Email</Form.Label>
           <Form.Control
             required
@@ -55,9 +55,10 @@ export default function LoginPage() {
           </Form.Control.Feedback>
         </Form.Group>
 
-        <Form.Group className="mb-3">
+        <Form.Group className="mb-3" controlId="loginPassword">
           <Form.Label>Пароль</Form.Label>
           <Form.Control
+            id="loginPassword"
             required
             type="password"
             name="password"
