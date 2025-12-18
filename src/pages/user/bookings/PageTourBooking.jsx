@@ -6,6 +6,8 @@ import { createBooking } from "../../../services/bookingService";
 import { getTourPublicById } from "../../../services/tourService";
 import { getTourDeparturesByTour } from "../../../services/tourDepartureService";
 import { getFlightsForDeparture } from "../../../services/flightService";
+//import { createUserSearch } from "../../../services/userSearchService";
+import { addTourView } from "../../../services/tourViewService.js";
 
 export default function PageTourBooking() {
   const { id } = useParams(); // tourId
@@ -83,6 +85,17 @@ export default function PageTourBooking() {
     const t = await getTourPublicById(id);
     setTour(t);
 
+    /*try {
+      await createUserSearch({
+        action: "VIEW",
+        title: t.title,
+        country: null,
+        baseCityId: t.baseCityId,
+        tourId: t.id,
+        tourDepartureId: null,
+      });
+    } catch (e) {setError(e?.response?.data?.message || "Ошибка бронирования");}*/
+
     const deps = await getTourDeparturesByTour({ tourId: Number(id), page: 0, size: 2000 });
     setDepartures(deps?.content || []);
   };
@@ -123,6 +136,18 @@ export default function PageTourBooking() {
 
       const created = await createBooking(payload);
 
+      // 📌 логируем BOOK
+      /*try {
+        await createUserSearch({
+          action: "BOOK",
+          title: tour.title,
+          country: null,
+          baseCityId: tour.baseCityId,
+          tourId: tour.id,
+          tourDepartureId: Number(selectedDepartureId),
+        });
+      } catch (e) {setError(e?.response?.data?.message || "Ошибка бронирования");}*/
+
       alert(`Бронь создана ✅ (ID: ${created?.id})`);
       navigate("/", { replace: true }); // поменяй роут если у тебя другой
     } catch (e) {
@@ -146,6 +171,10 @@ export default function PageTourBooking() {
       }
     })();
     // eslint-disable-next-line
+  }, [id]);
+
+  useEffect(() => {
+    addTourView(Number(id)).catch(() => {});
   }, [id]);
 
   // auto select first departure

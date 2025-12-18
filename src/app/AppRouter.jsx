@@ -45,6 +45,7 @@ import PageMyBookings from "../pages/user/bookings/PageMyBookings.jsx";
 import PageBookingsAdmin from "../pages/admin/bookings/PageBookingsAdmin.jsx";
 import EditBookingStatusAdmin from "../pages/admin/bookings/EditBookingStatusAdmin.jsx";
 
+import PageRecommendations from "../pages/common/PageRecommendations";
 
 export default function AppRouter() {
   return (
@@ -327,6 +328,17 @@ export default function AppRouter() {
           <ProtectedRoute>
             <RoleGate allow={["ADMIN"]}>
               <EditBookingStatusAdmin />
+            </RoleGate>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/recommendations"
+        element={
+          <ProtectedRoute>
+            <RoleGate allow={["USER"]}>
+              <PageRecommendations />
             </RoleGate>
           </ProtectedRoute>
         }

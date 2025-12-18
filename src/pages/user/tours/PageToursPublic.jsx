@@ -3,6 +3,7 @@ import { Alert, Button, Card, Col, Container, Form, Row, Spinner } from "react-b
 import { useNavigate } from "react-router-dom";
 import { getToursPublicPaged } from "../../../services/tourService";
 import { getCitiesAll } from "../../../services/cityService";
+import { createUserSearch } from "../../../services/userSearchService";
 
 export default function PageToursPublic() {
   const navigate = useNavigate();
@@ -10,6 +11,7 @@ export default function PageToursPublic() {
   const [loading, setLoading] = useState(true);
   const [loadingRefs, setLoadingRefs] = useState(true);
   const [error, setError] = useState(null);
+   const [submittingReco, setSubmittingReco] = useState(false);
 
   const [title, setTitle] = useState("");
 
@@ -20,6 +22,15 @@ export default function PageToursPublic() {
   const [filters, setFilters] = useState({
     country: "",
     baseCityId: "",
+  });
+
+  const [recFilters, setRecFilters] = useState({
+    destinationCityId: "",
+    dateFrom: "",
+    dateTo: "",
+    personsCount: 1,
+    budgetMin: "",
+    budgetMax: "",
   });
 
   const [pageData, setPageData] = useState({
@@ -87,6 +98,21 @@ export default function PageToursPublic() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
+
+    // 🔍 логируем SEARCH
+    /*try {
+      await createUserSearch({
+        action: "SEARCH",
+        title: title || null,
+        country: filters.country || null,
+        baseCityId: filters.baseCityId
+          ? Number(filters.baseCityId)
+          : null,
+        tourId: null,
+        tourDepartureId: null,
+      });
+    } catch (e) {setError(e?.response?.data?.message || "Ошибка поиска");}*/
+
     await load(0);
   };
 
@@ -94,6 +120,16 @@ export default function PageToursPublic() {
     const emptyFilters = { country: "", baseCityId: "" };
     setTitle("");
     setFilters(emptyFilters);
+    /*try {
+      await createUserSearch({
+        action: "SEARCH",
+        title: null,
+        country: null,
+        baseCityId: null,
+        tourId: null,
+        tourDepartureId: null,
+      });
+    } catch (e) {setError(e?.response?.data?.message || "Ошибка поиска");}*/
     await load(0, { title: "", filters: emptyFilters });
   };
 
@@ -105,6 +141,56 @@ export default function PageToursPublic() {
 
   const onBook = (tourId) => {
     navigate(`/tours/${tourId}/book`);
+  };
+
+  const validateRecoFilters = () => {
+    const persons = Number(recFilters.personsCount || 1);
+    if (persons < 1) return "Количество людей должно быть >= 1";
+
+    if (recFilters.dateFrom && recFilters.dateTo) {
+      if (String(recFilters.dateFrom) > String(recFilters.dateTo)) {
+        return "dateFrom не может быть позже dateTo";
+      }
+    }
+
+    const min = recFilters.budgetMin !== "" ? Number(recFilters.budgetMin) : null;
+    const max = recFilters.budgetMax !== "" ? Number(recFilters.budgetMax) : null;
+    if (min != null && Number.isNaN(min)) return "budgetMin должен быть числом";
+    if (max != null && Number.isNaN(max)) return "budgetMax должен быть числом";
+    if (min != null && max != null && min > max) return "budgetMin не может быть больше budgetMax";
+
+    return null;
+  };
+
+  const onRecommend = async () => {
+    const err = validateRecoFilters();
+    if (err) {
+      setError(err);
+      return;
+    }
+
+    try {
+      setSubmittingReco(true);
+      setError(null);
+
+      const payload = {
+        //title: title || null,
+        destinationCityId: recFilters.destinationCityId ? Number(recFilters.destinationCityId) : null,
+        dateFrom: recFilters.dateFrom || null,  // ожидается ISO yyyy-MM-dd
+        dateTo: recFilters.dateTo || null,      // ожидается ISO yyyy-MM-dd
+        personsCount: Number(recFilters.personsCount || 1),
+        budgetMin: recFilters.budgetMin !== "" ? Number(recFilters.budgetMin) : null,
+        budgetMax: recFilters.budgetMax !== "" ? Number(recFilters.budgetMax) : null,
+        preferencesJson: null,
+      };
+
+      const res = await createUserSearch(payload); // { id }
+      navigate(`/recommendations?searchId=${res.id}`);
+    } catch (e) {
+      setError(e?.response?.data?.message || "Ошибка подбора рекомендаций");
+    } finally {
+      setSubmittingReco(false);
+    }
   };
 
   const prevDisabled = pageData.page <= 0;
@@ -121,6 +207,7 @@ export default function PageToursPublic() {
         </div>
       </div>
 
+      {/* Фильтры витрины */}
       <Form className="mb-3" onSubmit={onSubmit}>
         <div className="d-flex gap-2 flex-wrap align-items-center">
           <Form.Control
@@ -130,26 +217,22 @@ export default function PageToursPublic() {
             onChange={(e) => setTitle(e.target.value)}
           />
 
-          {/* Страна */}
           <Form.Select
             style={{ maxWidth: 220 }}
             value={filters.country}
-            disabled={loadingRefs}
+            disabled={loadingRefs || submittingReco}
             onChange={(e) => onCountryChange(e.target.value)}
           >
             <option value="">Страна (все)</option>
             {countries.map((ct) => (
-              <option key={ct} value={ct}>
-                {ct}
-              </option>
+              <option key={ct} value={ct}>{ct}</option>
             ))}
           </Form.Select>
 
-          {/* Город */}
           <Form.Select
             style={{ maxWidth: 260 }}
             value={filters.baseCityId}
-            disabled={loadingRefs}
+            disabled={loadingRefs || submittingReco}
             onChange={(e) => setFilters((p) => ({ ...p, baseCityId: e.target.value }))}
           >
             <option value="">Город (все)</option>
@@ -160,14 +243,98 @@ export default function PageToursPublic() {
             ))}
           </Form.Select>
 
-          <Button type="submit" variant="secondary" disabled={loadingRefs}>
+          <Button type="submit" variant="secondary" disabled={loadingRefs || submittingReco}>
             Применить
           </Button>
-          <Button type="button" variant="outline-secondary" onClick={onReset} disabled={loadingRefs}>
+          <Button type="button" variant="outline-secondary" onClick={onReset} disabled={loadingRefs || submittingReco}>
             Сброс
           </Button>
         </div>
       </Form>
+
+      {/* Параметры рекомендаций */}
+      <Card className="mb-3">
+        <Card.Body>
+          <div className="d-flex flex-wrap gap-2 align-items-end">
+            <div style={{ minWidth: 260 }}>
+              <Form.Label className="small text-muted">Куда (город назначения)</Form.Label>
+              <Form.Select
+                value={recFilters.destinationCityId}
+                disabled={loadingRefs || submittingReco}
+                onChange={(e) => setRecFilters((p) => ({ ...p, destinationCityId: e.target.value }))}
+              >
+                <option value="">Любой</option>
+                {(cities || []).map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}{c.country ? ` — ${c.country}` : ""}
+                  </option>
+                ))}
+              </Form.Select>
+            </div>
+
+            <div style={{ width: 180 }}>
+              <Form.Label className="small text-muted">Дата от</Form.Label>
+              <Form.Control
+                type="date"
+                value={recFilters.dateFrom}
+                disabled={submittingReco}
+                onChange={(e) => setRecFilters((p) => ({ ...p, dateFrom: e.target.value }))}
+              />
+            </div>
+
+            <div style={{ width: 180 }}>
+              <Form.Label className="small text-muted">Дата до</Form.Label>
+              <Form.Control
+                type="date"
+                value={recFilters.dateTo}
+                disabled={submittingReco}
+                onChange={(e) => setRecFilters((p) => ({ ...p, dateTo: e.target.value }))}
+              />
+            </div>
+
+            <div style={{ width: 140 }}>
+              <Form.Label className="small text-muted">Людей</Form.Label>
+              <Form.Control
+                type="number"
+                min={1}
+                value={recFilters.personsCount}
+                disabled={submittingReco}
+                onChange={(e) => setRecFilters((p) => ({ ...p, personsCount: Number(e.target.value) || 1 }))}
+              />
+            </div>
+
+            <div style={{ width: 180 }}>
+              <Form.Label className="small text-muted">Бюджет min (общий)</Form.Label>
+              <Form.Control
+                type="number"
+                min={0}
+                value={recFilters.budgetMin}
+                disabled={submittingReco}
+                onChange={(e) => setRecFilters((p) => ({ ...p, budgetMin: e.target.value }))}
+              />
+            </div>
+
+            <div style={{ width: 180 }}>
+              <Form.Label className="small text-muted">Бюджет max (общий)</Form.Label>
+              <Form.Control
+                type="number"
+                min={0}
+                value={recFilters.budgetMax}
+                disabled={submittingReco}
+                onChange={(e) => setRecFilters((p) => ({ ...p, budgetMax: e.target.value }))}
+              />
+            </div>
+
+            <Button variant="primary" onClick={onRecommend} disabled={loadingRefs || submittingReco}>
+              {submittingReco ? "Подбор..." : "Подобрать"}
+            </Button>
+          </div>
+
+          <div className="small text-muted mt-2">
+            Подбор создаст searchId и откроет страницу рекомендаций.
+          </div>
+        </Card.Body>
+      </Card>
 
       {error && <Alert variant="danger">{String(error)}</Alert>}
 

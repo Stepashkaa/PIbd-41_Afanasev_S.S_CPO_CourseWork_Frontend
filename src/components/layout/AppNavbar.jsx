@@ -63,6 +63,9 @@ export default function AppNavbar() {
               <>
                 <Nav.Link as={Link} to="/tours">Туры</Nav.Link>
                 <Nav.Link as={Link} to="/bookings">Мои брони</Nav.Link>
+                <Nav.Link as={Link} to="/recommendations">
+                  Рекомендации
+                </Nav.Link>
               </>
             )}
           </Nav>
